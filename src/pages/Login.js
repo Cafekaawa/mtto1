@@ -9,6 +9,7 @@ const Login = ({ onLogin }) => {
 
   const users = [
     { username: 'admin', password: 'Claudio1976+', role: 'administrador', fullName: 'Administrador Kaawa' },
+    { username: 'miguel', password: 'Jesus%2019', role: 'administrador', fullName: 'Jose Miguel Fernandez Perez' },
     { username: 'carlos', password: 'robusta25', role: 'tecnico', fullName: 'Carlos Hernandez Valencia' },
     { username: 'jonathan', password: 'arabica25', role: 'administrador', fullName: 'Jonathan Valencia Quintal' },
   ];
@@ -104,7 +105,7 @@ const Login = ({ onLogin }) => {
         </form>
 
         <p className="text-center text-gray-500 text-sm mt-6">
-          ¿Problemas para iniciar sesión? Contacta a tu administrador.
+          ¿Problemas para iniciar sesión? Contacta a tu administrador al E-mail sistemas@cafekaawa.mx.
         </p>
       </motion.div>
     </div>
