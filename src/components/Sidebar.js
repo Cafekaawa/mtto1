@@ -50,7 +50,7 @@ const Sidebar = ({ user, onLogout }) => { // Receive user and onLogout props
           {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </motion.button>
         <div className="text-xl font-bold text-center bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent">
-          Kaawa
+          System Mtto Cafe Kaawa
         </div>
       </div>
 
@@ -123,7 +123,7 @@ const Sidebar = ({ user, onLogout }) => { // Receive user and onLogout props
               onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside sidebar
             >
               <div className="text-3xl font-bold mb-10 text-center bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent">
-                Kaawa
+                System Mtto Cafe Kaawa
               </div>
               <div className="mb-6 text-center">
                 <p className="text-lg font-semibold text-white">{user?.fullName}</p>
