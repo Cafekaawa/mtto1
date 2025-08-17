@@ -60,7 +60,7 @@ const Welcome = () => {
             <Coffee className="w-12 h-12 text-white" />
           </motion.div>
           <h1 className="text-5xl font-extrabold text-gray-800 bg-gradient-to-r from-amber-600 to-orange-700 bg-clip-text text-transparent leading-tight">
-            ¡Bienvenido a Kaawa!
+            ¡Bienvenido al Sistema de Mantenimiento de Cafe Kaawa!
           </h1>
         </motion.div>
 
@@ -76,7 +76,7 @@ const Welcome = () => {
           whileTap={{ scale: 0.98 }}
         >
           <LogIn className="w-6 h-6" />
-          Entrar al Sistema
+          Da Click Aqui para Ir al Sistema
         </motion.button>
       </motion.div>
     </div>
