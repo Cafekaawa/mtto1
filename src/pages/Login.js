@@ -9,7 +9,6 @@ const Login = ({ onLogin }) => {
 
   const users = [
     { username: 'admin', password: 'Claudio1976+', role: 'administrador', fullName: 'Administrador Kaawa' },
-    { username: 'migue', password: 'Jesus%2019', role: 'administrador', fullName: 'Jose Miguel Fernandez Perez' },
     { username: 'carlos', password: 'robusta25', role: 'tecnico', fullName: 'Carlos Hernandez Valencia' },
     { username: 'jonathan', password: 'arabica25', role: 'administrador', fullName: 'Jonathan Valencia Quintal' },
   ];
@@ -47,7 +46,7 @@ const Login = ({ onLogin }) => {
           <h1 className="text-4xl font-extrabold text-gray-800 bg-gradient-to-r from-amber-600 to-orange-700 bg-clip-text text-transparent">
             Sistema de Mantenimiento de Café Kaawa
           </h1>
-          <p className="text-gray-500 mt-2">Inicia sesión para continuar tu reparando mas cafeteras</p>
+          <p className="text-gray-500 mt-2">Inicia sesión para continuar tu jornada cafetera</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -105,7 +104,7 @@ const Login = ({ onLogin }) => {
         </form>
 
         <p className="text-center text-gray-500 text-sm mt-6">
-          ¿Problemas para iniciar sesión? Contacta a tu administrador al e-mail sistemas@cafekaawa.mx.
+          ¿Problemas para iniciar sesión? Contacta a tu administrador.
         </p>
       </motion.div>
     </div>

@@ -95,7 +95,7 @@ class ErrorBoundary extends React.Component {
           transition={{ duration: 0.5 }}
         >
           <h2 className="text-2xl font-bold mb-4">Algo salió mal.</h2>
-          <p className="mb-2">Estamos trabajando para solucionarlo. Por favor, intenta recargar la página. Si es necesario contacta al administrador.</p>
+          <p className="mb-2">Estamos trabajando para solucionarlo. Por favor, intenta recargar la página.</p>
           <details className="text-sm text-red-800 mt-4 p-2 bg-red-100 rounded-md">
             <summary>Detalles del error</summary>
             <pre className="whitespace-pre-wrap break-words text-left">

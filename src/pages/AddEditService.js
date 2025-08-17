@@ -237,7 +237,7 @@ const AddEditService = ({ showNotification, currentUser }) => {
       } else {
         const docRef = await addDoc(collection(db, "services"), formData);
         // No need to update serviceCounter metadata for random folios
-        showNotification('Servicio generado con éxito.', 'success');
+        showNotification('Servicio programado con éxito.', 'success');
       }
       navigate('/servicios');
     } catch (error) {

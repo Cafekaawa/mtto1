@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Coffee, Users, Wrench, FileText, UserCheck, CalendarDays } from 'lucide-react';
+import { Coffee, Users, Wrench, FileText, UserCheck, CalendarDays, Clock, History } from 'lucide-react';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import logError from '../utils/logError';
@@ -10,9 +10,10 @@ const Dashboard = ({ showNotification, userRole }) => {
     { name: 'Clientes Activos', value: '...', icon: Users, color: 'from-blue-500 to-blue-600' },
     { name: 'Equipos Registrados', value: '...', icon: Coffee, color: 'from-green-500 to-green-600' },
     { name: 'Servicios Pendientes', value: '...', icon: Wrench, color: 'from-yellow-500 to-yellow-600' },
-    { name: 'Reportes Generados', value: '...', icon: FileText, color: 'from-purple-500 to-purple-600' },
   ]);
   const [upcomingServices, setUpcomingServices] = useState([]);
+  const [latestServices, setLatestServices] = useState([]);
+  const [oldestEquipment, setOldestEquipment] = useState([]);
   const [technicianMetrics, setTechnicianMetrics] = useState([]);
   const [clients, setClients] = useState([]); // To map client IDs to names
   const [equipment, setEquipment] = useState([]); // To map equipment IDs to names
@@ -44,14 +45,10 @@ const Dashboard = ({ showNotification, userRole }) => {
         const completedServices = allServices.filter(s => s.status === 'Completado');
         const pendingServices = allServices.filter(s => s.status === 'Pendiente').length;
         
-        // Mock for Reports (as reports are generated, not stored as a count)
-        const generatedReports = 567; // Placeholder for now
-
         setStats(prevStats => prevStats.map(stat => {
           if (stat.name === 'Clientes Activos') return { ...stat, value: activeClients };
           if (stat.name === 'Equipos Registrados') return { ...stat, value: totalEquipment };
           if (stat.name === 'Servicios Pendientes') return { ...stat, value: pendingServices };
-          if (stat.name === 'Reportes Generados') return { ...stat, value: generatedReports };
           return stat;
         }));
 
@@ -62,19 +59,67 @@ const Dashboard = ({ showNotification, userRole }) => {
           return eq ? `${eq.brand} ${eq.model}` : 'N/A';
         };
 
-        // Upcoming Services (within 8 months)
-        const eightMonthsFromNow = new Date();
-        eightMonthsFromNow.setMonth(eightMonthsFromNow.getMonth() + 8);
+        // Calculate Upcoming Services (8 months)
+        const upcoming = [];
+        const eightMonthsInMs = 8 * 30.44 * 24 * 60 * 60 * 1000; // Approximate 8 months average
 
-        const upcomingServicesData = allServices
-          .filter(s => ['Pendiente', 'En Progreso'].includes(s.status) && new Date(s.dateStart) <= eightMonthsFromNow)
-          .sort((a, b) => new Date(a.dateStart) - new Date(b.dateStart))
-          .slice(0, 5) // Limit to 5 upcoming services
+        for (const eq of equipmentData) {
+          // 1. Try to get the latest completed service date from the services module
+          const latestServiceFromModule = allServices
+            .filter(s => s.equipmentId === eq.id && s.status === 'Completado' && s.dateEnd)
+            .sort((a, b) => new Date(b.dateEnd) - new Date(a.dateEnd))[0];
+
+          let lastKnownDate = null;
+          if (latestServiceFromModule) {
+            lastKnownDate = new Date(latestServiceFromModule.dateEnd);
+          } else if (eq.lastService) { // 2. Fallback to lastService field in equipment
+            lastKnownDate = new Date(eq.lastService);
+          } else if (eq.isNewInstallation && eq.installationDate) { // 3. Fallback to installationDate
+            lastKnownDate = new Date(eq.installationDate);
+          } else if (eq.purchaseDate) { // 4. Fallback to purchaseDate
+            lastKnownDate = new Date(eq.purchaseDate);
+          }
+
+          if (lastKnownDate) {
+            const nextServiceDate = new Date(lastKnownDate.getTime() + eightMonthsInMs);
+            const today = new Date();
+
+            // Only add if the next service date is in the future
+            if (nextServiceDate > today) {
+              upcoming.push({
+                text: `${getEquipmentName(eq.id)} (${getClientName(eq.client)})`,
+                date: nextServiceDate.toISOString().split('T')[0], // Format to YYYY-MM-DD
+                sortDate: nextServiceDate,
+              });
+            }
+          }
+        }
+        
+        // Sort upcoming services by date and limit to 5
+        setUpcomingServices(upcoming.sort((a, b) => a.sortDate - b.sortDate).slice(0, 5));
+
+        // Top 5 Latest Services
+        const latestCompletedServices = allServices
+          .filter(s => s.status === 'Completado' && s.dateEnd) // Ensure dateEnd exists
+          .sort((a, b) => new Date(b.dateEnd) - new Date(a.dateEnd)) // Sort by completion date descending
+          .slice(0, 5)
           .map(s => ({
-            text: `${getEquipmentName(s.equipmentId)} (${getClientName(s.clientId)})`,
-            date: s.dateStart,
+            text: `${s.type} para ${getEquipmentName(s.equipmentId)} (${getClientName(s.clientId)})`,
+            date: s.dateEnd,
           }));
-        setUpcomingServices(upcomingServicesData);
+        setLatestServices(latestCompletedServices);
+
+        // Oldest Equipment (based on purchaseDate/invoice)
+        const oldestEq = equipmentData
+          .filter(eq => eq.purchaseDate) // Only consider equipment with a purchase date
+          .sort((a, b) => new Date(a.purchaseDate) - new Date(b.purchaseDate)) // Sort by oldest purchase date
+          .slice(0, 5) // Get the top 5 oldest
+          .map(eq => ({
+            text: `${eq.brand} ${eq.model} (${getClientName(eq.client)})`,
+            date: eq.purchaseDate,
+          }));
+        setOldestEquipment(oldestEq);
+
 
         // Technician Metrics (Admin only)
         if (userRole === 'administrador') {
@@ -172,7 +217,7 @@ const Dashboard = ({ showNotification, userRole }) => {
         </motion.div>
       )}
 
-      <div className="grid grid-cols-1 gap-4 md:gap-6"> {/* Changed to grid-cols-1 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         <motion.div
           className="bg-white rounded-2xl p-5 md:p-6 shadow-lg border border-gray-200"
           initial={{ opacity: 0, scale: 0.9 }}
@@ -201,7 +246,67 @@ const Dashboard = ({ showNotification, userRole }) => {
             )}
           </ul>
         </motion.div>
+
+        {/* New section for Top 5 Latest Services */}
+        <motion.div
+          className="bg-white rounded-2xl p-5 md:p-6 shadow-lg border border-gray-200"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, delay: 0.7 }}
+        >
+          <h2 className="text-xl font-semibold text-gray-800 mb-4 border-b pb-3 border-gray-200 flex items-center gap-2">
+            <Clock className="w-6 h-6 text-blue-600" /> Top 5 Últimos Servicios Realizados
+          </h2>
+          <ul className="space-y-3 md:space-y-4">
+            {latestServices.length === 0 ? (
+              <p className="text-gray-500 text-sm py-4">No hay servicios recientes para mostrar.</p>
+            ) : (
+              latestServices.map((service, index) => (
+                <motion.li
+                  key={index}
+                  className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100 text-sm md:text-base hover:bg-gray-100 transition-colors"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.3, delay: 0.8 + index * 0.05 }}
+                >
+                  <span className="text-gray-700">{service.text}</span>
+                  <span className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-0">{service.date}</span>
+                </motion.li>
+              ))
+            )}
+          </ul>
+        </motion.div>
       </div>
+
+      {/* New section for Oldest Equipment */}
+      <motion.div
+        className="bg-white rounded-2xl p-5 md:p-6 shadow-lg border border-gray-200 mt-6"
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5, delay: 0.9 }}
+      >
+        <h2 className="text-xl font-semibold text-gray-800 mb-4 border-b pb-3 border-gray-200 flex items-center gap-2">
+          <History className="w-6 h-6 text-purple-600" /> Equipos con Más Tiempo en Campo
+        </h2>
+        <ul className="space-y-3 md:space-y-4">
+          {oldestEquipment.length === 0 ? (
+            <p className="text-gray-500 text-sm py-4">No hay equipos con fecha de compra registrada.</p>
+          ) : (
+            oldestEquipment.map((eq, index) => (
+              <motion.li
+                key={index}
+                className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100 text-sm md:text-base hover:bg-gray-100 transition-colors"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3, delay: 1.0 + index * 0.05 }}
+              >
+                <span className="text-gray-700">{eq.text}</span>
+                <span className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-0">Factura: {eq.date}</span>
+              </motion.li>
+            ))
+          )}
+        </ul>
+      </motion.div>
     </div>
   );
 };
