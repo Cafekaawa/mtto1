@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { ArrowLeft, Building2, Phone, Mail, MapPin, Coffee, Wrench, UserRound, Settings, Calendar, FileText, Tag, CheckCircle2, XCircle } from 'lucide-react';
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
-import logError from '../utils/logError'; // Import logError
+import logError from '../utils/logError';
 
 const EquipmentDetail = ({ showNotification }) => {
   const { id } = useParams();
@@ -44,7 +44,7 @@ const EquipmentDetail = ({ showNotification }) => {
       } catch (error) {
         console.error("Error fetching equipment details: ", error);
         showNotification('Error al cargar detalles del equipo.', 'error');
-        logError(error, 'EquipmentDetail - fetchEquipmentData'); // Log the error
+        logError(error, 'EquipmentDetail - fetchEquipmentData');
       }
     };
 
@@ -113,10 +113,12 @@ const EquipmentDetail = ({ showNotification }) => {
             </span>
           </p>
           {equipment.isNewInstallation && <p className="flex items-center gap-2"><Calendar className="w-5 h-5 text-gray-600" /> <strong>Fecha de Instalación:</strong> {equipment.installationDate || 'N/A'}</p>}
+          {/* Removed currentCondition field
           <div className="md:col-span-2">
             <p className="font-semibold mb-1">Condiciones Actuales:</p>
             <p className="bg-gray-50 p-3 rounded-lg border border-gray-200 text-sm">{equipment.currentCondition || 'No hay información de condiciones actuales.'}</p>
           </div>
+          */}
           <div className="md:col-span-2">
             <p className="font-semibold mb-1">Notas del Equipo:</p>
             <p className="bg-gray-50 p-3 rounded-lg border border-gray-200 text-sm">{equipment.notes || 'No hay notas para este equipo.'}</p>

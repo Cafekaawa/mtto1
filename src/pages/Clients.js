@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Search, Edit, Trash2, Building2, Phone, Mail, Eye, CheckCircle2, XCircle } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Building2, Phone, Mail, Eye, CheckCircle2, XCircle, MapPin } from 'lucide-react'; // Added MapPin icon
 import { useNavigate } from 'react-router-dom';
 import { collection, getDocs, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
-import logError from '../utils/logError'; // Import logError
+import logError from '../utils/logError';
 
 const Clients = ({ showNotification, userRole }) => {
   const [clients, setClients] = useState([]);
@@ -22,7 +22,7 @@ const Clients = ({ showNotification, userRole }) => {
       } catch (error) {
         console.error("Error fetching clients: ", error);
         showNotification('Error al cargar clientes.', 'error');
-        logError(error, 'Clients - getClients'); // Log the error
+        logError(error, 'Clients - getClients');
       }
     };
     getClients();
@@ -30,7 +30,8 @@ const Clients = ({ showNotification, userRole }) => {
 
   const filteredClients = clients.filter(client =>
     client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    client.contact.toLowerCase().includes(searchTerm.toLowerCase())
+    client.contact.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (client.zone && client.zone.toLowerCase().includes(searchTerm.toLowerCase())) // Filter by zone
   );
 
   const handleDelete = async (id) => {
@@ -43,7 +44,7 @@ const Clients = ({ showNotification, userRole }) => {
       } catch (error) {
         console.error("Error deleting client: ", error);
         showNotification('Error al eliminar cliente.', 'error');
-        logError(error, 'Clients - handleDelete'); // Log the error
+        logError(error, 'Clients - handleDelete');
       }
     }
   };
@@ -109,6 +110,7 @@ const Clients = ({ showNotification, userRole }) => {
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider hidden md:table-cell">Teléfono</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider hidden lg:table-cell">Email</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider hidden lg:table-cell">Dirección</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Zona</th> {/* New column header */}
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Estado</th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">Acciones</th>
                 </tr>
@@ -139,6 +141,11 @@ const Clients = ({ showNotification, userRole }) => {
                         </div>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 hidden lg:table-cell">{client.address}</td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700"> {/* New column for Zone */}
+                        <div className="flex items-center gap-1 md:gap-2">
+                          <MapPin className="w-3 h-3 md:w-4 md:h-4 text-gray-500" /> {client.zone || 'N/A'}
+                        </div>
+                      </td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm">
                         {client.isActive ? (
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">

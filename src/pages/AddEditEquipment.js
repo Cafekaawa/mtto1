@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate, useParams } from 'react-router-dom';
-import { collection, getDocs, addDoc, updateDoc, doc, getDoc } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, doc, getDoc, getDocs } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { ArrowLeft } from 'lucide-react';
 
-const AddEditEquipment = ({ onSave, showNotification }) => {
+const AddEditEquipment = ({ showNotification }) => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [allClients, setAllClients] = useState([]); // Store all clients
+  const [activeClients, setActiveClients] = useState([]); // Store only active clients for dropdown
   const [formData, setFormData] = useState({
     type: '',
     brand: '',
@@ -15,36 +17,32 @@ const AddEditEquipment = ({ onSave, showNotification }) => {
     serial: '',
     purchaseDate: '',
     invoiceNumber: '',
-    currentCondition: '',
-    currentStatus: '', // This will be 'Nuevo', 'Seminuevo', 'Usado'
-    status: '', // This will be auto-determined (asignado, disponible, etc.)
-    client: '', // Will store client ID
+    currentStatus: '', // Now a select with specific options
+    status: 'disponible', // Default status, will be auto-set
+    client: '', // Client ID
     lastService: '',
-    lastServiceType: '', // New field for last service type
-    isNewInstallation: false, // New field for new installation
-    installationDate: '', // New field for installation date
+    lastServiceType: '', // Now a select with specific options
+    isNewInstallation: false,
+    installationDate: '',
+    notes: '',
   });
-  const [activeClients, setActiveClients] = useState([]);
 
   const isEditing = !!id;
 
-  // Fetch active clients for the dropdown
   useEffect(() => {
-    const getActiveClients = async () => {
+    const fetchClients = async () => {
       try {
-        const clientsCollectionRef = collection(db, "clients");
-        const data = await getDocs(clientsCollectionRef);
-        setActiveClients(data.docs.map((doc) => ({ ...doc.data(), id: doc.id })).filter(c => c.isActive));
+        const clientsCollection = collection(db, "clients");
+        const clientSnapshot = await getDocs(clientsCollection);
+        const clientsData = clientSnapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name, isActive: doc.data().isActive }));
+        setAllClients(clientsData);
+        setActiveClients(clientsData.filter(c => c.isActive)); // Filter active clients for dropdown
       } catch (error) {
-        console.error("Error fetching active clients: ", error);
-        showNotification('Error al cargar clientes activos.', 'error');
+        console.error("Error fetching clients: ", error);
+        showNotification('Error al cargar clientes.', 'error');
       }
     };
-    getActiveClients();
-  }, [showNotification]);
 
-  // Fetch equipment data if editing
-  useEffect(() => {
     const getEquipment = async () => {
       if (isEditing) {
         try {
@@ -62,8 +60,20 @@ const AddEditEquipment = ({ onSave, showNotification }) => {
         }
       }
     };
+    fetchClients();
     getEquipment();
   }, [id, isEditing, navigate, showNotification]);
+
+  // Effect to automatically set equipment status based on client assignment
+  useEffect(() => {
+    setFormData(prev => {
+      const newStatus = prev.client ? 'asignado' : 'disponible';
+      if (prev.status !== newStatus) {
+        return { ...prev, status: newStatus };
+      }
+      return prev;
+    });
+  }, [formData.client]); // Re-run when client changes
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -75,18 +85,13 @@ const AddEditEquipment = ({ onSave, showNotification }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Determine status based on client association
-    const finalStatus = formData.client ? 'asignado' : 'disponible';
-    const dataToSave = { ...formData, status: finalStatus };
-
     try {
       if (isEditing) {
         const equipmentDoc = doc(db, "equipment", id);
-        await updateDoc(equipmentDoc, dataToSave);
+        await updateDoc(equipmentDoc, formData);
         showNotification('Equipo modificado con éxito.', 'success');
       } else {
-        await addDoc(collection(db, "equipment"), dataToSave);
+        await addDoc(collection(db, "equipment"), formData);
         showNotification('Equipo agregado con éxito.', 'success');
       }
       navigate('/equipos');
@@ -128,9 +133,10 @@ const AddEditEquipment = ({ onSave, showNotification }) => {
               className="form-select border border-gray-300 rounded-lg focus:ring-amber-500 focus:border-amber-500"
               required
             >
-              <option value="">Seleccione...</option>
+              <option value="">Seleccione un tipo...</option>
               <option value="Cafetera">Cafetera</option>
               <option value="Molino">Molino</option>
+              <option value="Otro">Otro</option>
             </select>
           </div>
           <div>
@@ -191,36 +197,35 @@ const AddEditEquipment = ({ onSave, showNotification }) => {
               className="form-input border border-gray-300 rounded-lg focus:ring-amber-500 focus:border-amber-500"
             />
           </div>
-          <div className="md:col-span-2">
-            <label htmlFor="currentCondition" className="block text-sm font-medium text-gray-700 mb-1">Condiciones Actuales</label>
-            <textarea
-              id="currentCondition"
-              name="currentCondition"
-              value={formData.currentCondition}
-              onChange={handleChange}
-              rows="3"
-              className="form-input border border-gray-300 rounded-lg focus:ring-amber-500 focus:border-amber-500"
-            ></textarea>
-          </div>
           <div>
-            <label htmlFor="currentStatus" className="block text-sm font-medium text-gray-700 mb-1">Estado Actual <span className="text-red-500">*</span></label>
+            <label htmlFor="currentStatus" className="block text-sm font-medium text-gray-700 mb-1">Estado Actual del Equipo</label>
             <select
               id="currentStatus"
               name="currentStatus"
               value={formData.currentStatus}
               onChange={handleChange}
               className="form-select border border-gray-300 rounded-lg focus:ring-amber-500 focus:border-amber-500"
-              required
             >
-              <option value="">Seleccione...</option>
+              <option value="">Seleccione un estado...</option>
               <option value="Nuevo">Nuevo</option>
               <option value="Seminuevo">Seminuevo</option>
               <option value="Usado">Usado</option>
             </select>
           </div>
-          {/* Status field is removed as it's auto-determined */}
           <div>
-            <label htmlFor="client" className="block text-sm font-medium text-gray-700 mb-1">Cliente Asociado (Opcional)</label>
+            <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">Estado del Equipo <span className="text-red-500">*</span></label>
+            <input
+              type="text"
+              id="status"
+              name="status"
+              value={formData.status}
+              readOnly
+              disabled
+              className="form-input border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
+            />
+          </div>
+          <div>
+            <label htmlFor="client" className="block text-sm font-medium text-gray-700 mb-1">Cliente Asignado</label>
             <select
               id="client"
               name="client"
@@ -228,14 +233,14 @@ const AddEditEquipment = ({ onSave, showNotification }) => {
               onChange={handleChange}
               className="form-select border border-gray-300 rounded-lg focus:ring-amber-500 focus:border-amber-500"
             >
-              <option value="">Ninguno</option>
+              <option value="">Seleccione un cliente...</option>
               {activeClients.map(client => (
                 <option key={client.id} value={client.id}>{client.name}</option>
               ))}
             </select>
           </div>
           <div>
-            <label htmlFor="lastService" className="block text-sm font-medium text-gray-700 mb-1">Fecha Último Servicio (Opcional)</label>
+            <label htmlFor="lastService" className="block text-sm font-medium text-gray-700 mb-1">Fecha Último Servicio</label>
             <input
               type="date"
               id="lastService"
@@ -246,7 +251,7 @@ const AddEditEquipment = ({ onSave, showNotification }) => {
             />
           </div>
           <div>
-            <label htmlFor="lastServiceType" className="block text-sm font-medium text-gray-700 mb-1">Tipo Último Servicio (Opcional)</label>
+            <label htmlFor="lastServiceType" className="block text-sm font-medium text-gray-700 mb-1">Tipo Último Servicio</label>
             <select
               id="lastServiceType"
               name="lastServiceType"
@@ -254,7 +259,7 @@ const AddEditEquipment = ({ onSave, showNotification }) => {
               onChange={handleChange}
               className="form-select border border-gray-300 rounded-lg focus:ring-amber-500 focus:border-amber-500"
             >
-              <option value="">Seleccione...</option>
+              <option value="">Seleccione un tipo...</option>
               <option value="Mantenimiento Preventivo">Mantenimiento Preventivo</option>
               <option value="Mantenimiento General">Mantenimiento General</option>
               <option value="Reconstruccion">Reconstrucción</option>
@@ -269,11 +274,11 @@ const AddEditEquipment = ({ onSave, showNotification }) => {
               onChange={handleChange}
               className="h-4 w-4 text-amber-600 border-gray-300 rounded focus:ring-amber-500"
             />
-            <label htmlFor="isNewInstallation" className="ml-2 text-sm font-medium text-gray-700">¿Es instalación nueva?</label>
+            <label htmlFor="isNewInstallation" className="ml-2 text-sm font-medium text-gray-700">¿Es Nueva Instalación?</label>
           </div>
           {formData.isNewInstallation && (
             <div>
-              <label htmlFor="installationDate" className="block text-sm font-medium text-gray-700 mb-1">Fecha de Instalación <span className="text-red-500">*</span></label>
+              <label htmlFor="installationDate" className="block text-sm font-medium text-gray-700 mb-1">Fecha de Instalación</label>
               <input
                 type="date"
                 id="installationDate"
@@ -281,10 +286,20 @@ const AddEditEquipment = ({ onSave, showNotification }) => {
                 value={formData.installationDate}
                 onChange={handleChange}
                 className="form-input border border-gray-300 rounded-lg focus:ring-amber-500 focus:border-amber-500"
-                required={formData.isNewInstallation}
               />
             </div>
           )}
+          <div className="md:col-span-2">
+            <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">Notas del Equipo</label>
+            <textarea
+              id="notes"
+              name="notes"
+              value={formData.notes}
+              onChange={handleChange}
+              rows="3"
+              className="form-input border border-gray-300 rounded-lg focus:ring-amber-500 focus:border-amber-500"
+            ></textarea>
+          </div>
           <div className="md:col-span-2 flex justify-end space-x-2 md:space-x-3 mt-4 md:mt-6">
             <motion.button
               type="button"

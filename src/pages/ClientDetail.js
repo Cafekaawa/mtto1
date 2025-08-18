@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Building2, Phone, Mail, MapPin, Coffee, Wrench, UserRound } from 'lucide-react';
+import { ArrowLeft, Building2, Phone, Mail, MapPin, Coffee, Wrench, UserRound, Globe } from 'lucide-react'; // Added Globe icon
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
-import logError from '../utils/logError'; // Import logError
+import logError from '../utils/logError';
 
 const ClientDetail = ({ showNotification }) => {
   const { id } = useParams();
@@ -39,7 +39,7 @@ const ClientDetail = ({ showNotification }) => {
       } catch (error) {
         console.error("Error fetching client details: ", error);
         showNotification('Error al cargar detalles del cliente.', 'error');
-        logError(error, 'ClientDetail - fetchClientData'); // Log the error
+        logError(error, 'ClientDetail - fetchClientData');
       }
     };
 
@@ -86,6 +86,7 @@ const ClientDetail = ({ showNotification }) => {
           <p className="flex items-center gap-2"><Phone className="w-5 h-5 text-gray-600" /> <strong>Teléfono:</strong> {client.phone}</p>
           <p className="flex items-center gap-2"><Mail className="w-5 h-5 text-gray-600" /> <strong>Email:</strong> {client.email || 'N/A'}</p>
           <p className="flex items-center gap-2"><MapPin className="w-5 h-5 text-gray-600" /> <strong>Dirección:</strong> {client.address || 'N/A'}</p>
+          {client.zone && <p className="flex items-center gap-2"><Globe className="w-5 h-5 text-gray-600" /> <strong>Zona:</strong> {client.zone}</p>}
           <div className="md:col-span-2">
             <p className="font-semibold mb-1">Notas:</p>
             <p className="bg-gray-50 p-3 rounded-lg border border-gray-200 text-sm">{client.notes || 'No hay notas para este cliente.'}</p>

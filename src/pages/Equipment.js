@@ -4,7 +4,7 @@ import { Plus, Search, Edit, Trash2, Coffee, Settings, Calendar, Eye, Tag, FileT
 import { useNavigate } from 'react-router-dom';
 import { collection, getDocs, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
-import logError from '../utils/logError'; // Import logError
+import logError from '../utils/logError';
 
 const Equipment = ({ showNotification, userRole }) => {
   const [equipment, setEquipment] = useState([]);
@@ -27,7 +27,7 @@ const Equipment = ({ showNotification, userRole }) => {
       } catch (error) {
         console.error("Error fetching data: ", error);
         showNotification('Error al cargar equipos o clientes.', 'error');
-        logError(error, 'Equipment - getEquipmentAndClients'); // Log the error
+        logError(error, 'Equipment - getEquipmentAndClients');
       }
     };
     getEquipmentAndClients();
@@ -56,7 +56,7 @@ const Equipment = ({ showNotification, userRole }) => {
       } catch (error) {
         console.error("Error deleting equipment: ", error);
         showNotification('Error al eliminar equipo.', 'error');
-        logError(error, 'Equipment - handleDelete'); // Log the error
+        logError(error, 'Equipment - handleDelete');
       }
     }
   };
@@ -123,16 +123,16 @@ const Equipment = ({ showNotification, userRole }) => {
             No se encontraron equipos.
           </motion.p>
         ) : (
-          <div className="responsive-table-container">
-            <table className="responsive-table divide-y divide-gray-200 w-full">
+          <div className="responsive-table-container overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Tipo</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Marca/Modelo</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider hidden md:table-cell">Serie</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Cliente</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Estado</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">Acciones</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider min-w-[100px]">Tipo</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider min-w-[150px]">Marca/Modelo</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider min-w-[120px]">Serie</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider min-w-[150px]">Cliente</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider min-w-[100px]">Estado</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider min-w-[120px]">Acciones</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -146,15 +146,19 @@ const Equipment = ({ showNotification, userRole }) => {
                       transition={{ duration: 0.3 }}
                       className="hover:bg-gray-50"
                     >
-                      <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 flex items-center gap-1 md:gap-2">
-                        <Coffee className="w-3 h-3 md:w-4 md:h-4 text-amber-500" /> {item.type}
+                      <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                        <div className="flex items-center gap-1 md:gap-2">
+                          <Coffee className="w-3 h-3 md:w-4 md:h-4 text-amber-500" /> {item.type}
+                        </div>
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 flex items-center gap-1 md:gap-2">
-                        <Tag className="w-3 h-3 md:w-4 md:h-4 text-gray-500" /> {item.brand} {item.model}
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                        <div className="flex items-center gap-1 md:gap-2">
+                          <Tag className="w-3 h-3 md:w-4 md:h-4 text-gray-500" /> {item.brand} {item.model}
+                        </div>
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 hidden md:table-cell">{item.serial}</td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{item.serial}</td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{getClientName(item.client)}</td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm">
+                      <td className="px-4 py-3 whitespace-nowrap">
                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusClass(item.status)}`}>
                           {item.status}
                         </span>

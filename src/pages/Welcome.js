@@ -76,7 +76,7 @@ const Welcome = () => {
           whileTap={{ scale: 0.98 }}
         >
           <LogIn className="w-6 h-6" />
-          Da Click Aqui para Ir al Sistema
+          Ingresa al Sistema
         </motion.button>
       </motion.div>
     </div>

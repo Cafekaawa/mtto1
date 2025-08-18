@@ -13,7 +13,7 @@ import Services from './pages/Services';
 import ServiceDetail from './pages/ServiceDetail';
 import AddEditService from './pages/AddEditService';
 import Reports from './pages/Reports';
-import UploadDownload from './pages/UploadDownload';
+// import UploadDownload from './pages/UploadDownload'; // Removed import
 import Login from './pages/Login';
 import Welcome from './pages/Welcome';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -38,14 +38,12 @@ const HeaderHandler = ({ user }) => {
   } else if (location.pathname.startsWith("/equipos/")) {
     title = "Detalles del Equipo";
   } else if (location.pathname.startsWith("/servicios/add")) {
-    title = "Programar Servicio";
+    title = "Agregar Servicio";
   } else if (location.pathname.startsWith("/servicios/edit/")) {
     title = "Editar Servicio";
   } else if (location.pathname.startsWith("/servicios/")) {
     title = "Detalles del Servicio";
-  } else if (location.pathname.startsWith("/cargas-descargas")) {
-    title = "Cargas y Descargas";
-  } else {
+  } else { // Removed condition for /cargas-descargas
     switch (location.pathname) {
       case "/clientes":
         title = "Gestión de Clientes";
@@ -54,7 +52,7 @@ const HeaderHandler = ({ user }) => {
         title = "Gestión de Equipos";
         break;
       case "/servicios":
-        title = "Programación de Servicios";
+        title = "Gestión de Servicios";
         break;
       case "/reportes":
         title = "Generación de Reportes";
@@ -196,7 +194,7 @@ const AppContent = () => {
                     <Route path="/servicios/add" element={<AddEditService showNotification={showNotification} currentUser={user} />} />
                     <Route path="/servicios/edit/:id" element={<AddEditService showNotification={showNotification} currentUser={user} />} />
 
-                    <Route path="/cargas-descargas" element={<UploadDownload showNotification={showNotification} />} />
+                    {/* <Route path="/cargas-descargas" element={<UploadDownload showNotification={showNotification} />} /> */} {/* Removed */}
                   </>
                 )}
 

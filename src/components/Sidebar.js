@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, Users, Coffee, Wrench, FileText, Settings, Menu, X, LogOut, UploadCloud } from 'lucide-react';
+import { LayoutDashboard, Users, Coffee, Wrench, FileText, Settings, Menu, X, LogOut } from 'lucide-react'; // Removed UploadCloud
 
 const navItems = [
   { name: 'Dashboard', icon: LayoutDashboard, path: '/' },
@@ -9,7 +9,7 @@ const navItems = [
   { name: 'Equipos', icon: Coffee, path: '/equipos' },
   { name: 'Servicios', icon: Wrench, path: '/servicios' },
   { name: 'Reportes', icon: FileText, path: '/reportes' },
-  { name: 'Cargas/Descargas', icon: UploadCloud, path: '/cargas-descargas', adminOnly: true }, // New item, adminOnly
+  // { name: 'Cargas/Descargas', icon: UploadCloud, path: '/cargas-descargas', adminOnly: true }, // Removed
 ];
 
 const Sidebar = ({ user, onLogout }) => { // Receive user and onLogout props

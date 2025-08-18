@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Coffee, Users, Wrench, FileText, UserCheck, CalendarDays, Clock, History } from 'lucide-react';
+import { Coffee, Users, Wrench, FileText, UserCheck, CalendarDays, Clock, History, AlertTriangle, PieChart, MapPin } from 'lucide-react'; // Added MapPin icon
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import logError from '../utils/logError';
@@ -11,9 +11,13 @@ const Dashboard = ({ showNotification, userRole }) => {
     { name: 'Equipos Registrados', value: '...', icon: Coffee, color: 'from-green-500 to-green-600' },
     { name: 'Servicios Pendientes', value: '...', icon: Wrench, color: 'from-yellow-500 to-yellow-600' },
   ]);
-  const [upcomingServices, setUpcomingServices] = useState([]);
+  const [upcomingServices8Months, setUpcomingServices8Months] = useState([]);
+  const [upcomingServices2Months, setUpcomingServices2Months] = useState([]);
+  const [overdueEquipment, setOverdueEquipment] = useState([]);
   const [latestServices, setLatestServices] = useState([]);
-  const [oldestEquipment, setOldestEquipment] = useState([]);
+  const [recentEquipment, setRecentEquipment] = useState([]);
+  const [servicesByType, setServicesByType] = useState([]);
+  const [clientsByZone, setClientsByZone] = useState([]); // New state for clients by zone
   const [technicianMetrics, setTechnicianMetrics] = useState([]);
   const [clients, setClients] = useState([]); // To map client IDs to names
   const [equipment, setEquipment] = useState([]); // To map equipment IDs to names
@@ -43,12 +47,12 @@ const Dashboard = ({ showNotification, userRole }) => {
         const servicesSnapshot = await getDocs(collection(db, "services"));
         const allServices = servicesSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
         const completedServices = allServices.filter(s => s.status === 'Completado');
-        const pendingServices = allServices.filter(s => s.status === 'Pendiente').length;
+        const pendingServicesCount = allServices.filter(s => s.status === 'Pendiente' || s.status === 'En Progreso').length;
         
         setStats(prevStats => prevStats.map(stat => {
           if (stat.name === 'Clientes Activos') return { ...stat, value: activeClients };
           if (stat.name === 'Equipos Registrados') return { ...stat, value: totalEquipment };
-          if (stat.name === 'Servicios Pendientes') return { ...stat, value: pendingServices };
+          if (stat.name === 'Servicios Pendientes') return { ...stat, value: pendingServicesCount };
           return stat;
         }));
 
@@ -59,19 +63,24 @@ const Dashboard = ({ showNotification, userRole }) => {
           return eq ? `${eq.brand} ${eq.model}` : 'N/A';
         };
 
-        // Calculate Upcoming Services (8 months)
-        const upcoming = [];
+        // --- Calculate Upcoming Services (8 months) and Overdue Equipment ---
+        const upcoming8 = [];
+        const upcoming2 = [];
+        const overdue = [];
         const eightMonthsInMs = 8 * 30.44 * 24 * 60 * 60 * 1000; // Approximate 8 months average
+        const twoMonthsInMs = 2 * 30.44 * 24 * 60 * 60 * 1000; // Approximate 2 months average
+        const today = new Date();
+        const twoMonthsFromNow = new Date(today.getTime() + twoMonthsInMs);
 
         for (const eq of equipmentData) {
           // 1. Try to get the latest completed service date from the services module
-          const latestServiceFromModule = allServices
+          const latestServiceForEquipment = allServices
             .filter(s => s.equipmentId === eq.id && s.status === 'Completado' && s.dateEnd)
             .sort((a, b) => new Date(b.dateEnd) - new Date(a.dateEnd))[0];
 
           let lastKnownDate = null;
-          if (latestServiceFromModule) {
-            lastKnownDate = new Date(latestServiceFromModule.dateEnd);
+          if (latestServiceForEquipment) {
+            lastKnownDate = new Date(latestServiceForEquipment.dateEnd);
           } else if (eq.lastService) { // 2. Fallback to lastService field in equipment
             lastKnownDate = new Date(eq.lastService);
           } else if (eq.isNewInstallation && eq.installationDate) { // 3. Fallback to installationDate
@@ -82,21 +91,40 @@ const Dashboard = ({ showNotification, userRole }) => {
 
           if (lastKnownDate) {
             const nextServiceDate = new Date(lastKnownDate.getTime() + eightMonthsInMs);
-            const today = new Date();
-
-            // Only add if the next service date is in the future
-            if (nextServiceDate > today) {
-              upcoming.push({
+            
+            // Check for Overdue Equipment
+            if (nextServiceDate < today) {
+              overdue.push({
                 text: `${getEquipmentName(eq.id)} (${getClientName(eq.client)})`,
-                date: nextServiceDate.toISOString().split('T')[0], // Format to YYYY-MM-DD
+                date: nextServiceDate.toISOString().split('T')[0],
                 sortDate: nextServiceDate,
               });
+            } 
+            // Check for Upcoming Services (8 months)
+            else if (nextServiceDate > today) {
+              upcoming8.push({
+                text: `${getEquipmentName(eq.id)} (${getClientName(eq.client)})`,
+                date: nextServiceDate.toISOString().split('T')[0],
+                sortDate: nextServiceDate,
+              });
+
+              // Check for Upcoming Services (2 months)
+              if (nextServiceDate <= twoMonthsFromNow) {
+                upcoming2.push({
+                  text: `${getEquipmentName(eq.id)} (${getClientName(eq.client)})`,
+                  date: nextServiceDate.toISOString().split('T')[0],
+                  sortDate: nextServiceDate,
+                });
+              }
             }
           }
         }
         
-        // Sort upcoming services by date and limit to 5
-        setUpcomingServices(upcoming.sort((a, b) => a.sortDate - b.sortDate).slice(0, 5));
+        // Sort and set states
+        setUpcomingServices8Months(upcoming8.sort((a, b) => a.sortDate - b.sortDate).slice(0, 5));
+        setUpcomingServices2Months(upcoming2.sort((a, b) => a.sortDate - b.sortDate).slice(0, 5));
+        setOverdueEquipment(overdue.sort((a, b) => a.sortDate - b.sortDate).slice(0, 5));
+
 
         // Top 5 Latest Services
         const latestCompletedServices = allServices
@@ -109,16 +137,33 @@ const Dashboard = ({ showNotification, userRole }) => {
           }));
         setLatestServices(latestCompletedServices);
 
-        // Oldest Equipment (based on purchaseDate/invoice)
-        const oldestEq = equipmentData
+        // Most Recent Equipment Added to System (sorted by purchaseDate as a proxy for entry date)
+        const recentEq = equipmentData
           .filter(eq => eq.purchaseDate) // Only consider equipment with a purchase date
-          .sort((a, b) => new Date(a.purchaseDate) - new Date(b.purchaseDate)) // Sort by oldest purchase date
-          .slice(0, 5) // Get the top 5 oldest
+          .sort((a, b) => new Date(b.purchaseDate) - new Date(a.purchaseDate)) // Sort by most recent purchase date (descending)
+          .slice(0, 5) // Get the top 5 most recent
           .map(eq => ({
             text: `${eq.brand} ${eq.model} (${getClientName(eq.client)})`,
             date: eq.purchaseDate,
           }));
-        setOldestEquipment(oldestEq);
+        setRecentEquipment(recentEq);
+
+        // Services by Type
+        const servicesByTypeCounts = allServices.reduce((acc, service) => {
+          if (service.type) {
+            acc[service.type] = (acc[service.type] || 0) + 1;
+          }
+          return acc;
+        }, {});
+        setServicesByType(Object.entries(servicesByTypeCounts).map(([type, count]) => ({ type, count })));
+
+        // Clients by Zone
+        const clientsByZoneCounts = clientsData.reduce((acc, client) => {
+          const zone = client.zone || 'Desconocida'; // Default to 'Desconocida' if zone is not set
+          acc[zone] = (acc[zone] || 0) + 1;
+          return acc;
+        }, {});
+        setClientsByZone(Object.entries(clientsByZoneCounts).map(([zone, count]) => ({ zone, count })));
 
 
         // Technician Metrics (Admin only)
@@ -228,10 +273,10 @@ const Dashboard = ({ showNotification, userRole }) => {
             <CalendarDays className="w-6 h-6 text-amber-600" /> Próximos Servicios (8 meses)
           </h2>
           <ul className="space-y-3 md:space-y-4">
-            {upcomingServices.length === 0 ? (
+            {upcomingServices8Months.length === 0 ? (
               <p className="text-gray-500 text-sm py-4">No hay servicios próximos.</p>
             ) : (
-              upcomingServices.map((service, index) => (
+              upcomingServices8Months.map((service, index) => (
                 <motion.li
                   key={index}
                   className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 bg-amber-50 rounded-lg border border-amber-200 text-sm md:text-base hover:bg-amber-100 transition-colors"
@@ -247,12 +292,44 @@ const Dashboard = ({ showNotification, userRole }) => {
           </ul>
         </motion.div>
 
-        {/* New section for Top 5 Latest Services */}
+        {/* New section for Upcoming Services (2 Months) */}
         <motion.div
           className="bg-white rounded-2xl p-5 md:p-6 shadow-lg border border-gray-200"
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5, delay: 0.7 }}
+        >
+          <h2 className="text-xl font-semibold text-gray-800 mb-4 border-b pb-3 border-gray-200 flex items-center gap-2">
+            <CalendarDays className="w-6 h-6 text-green-600" /> Próximos Servicios (2 meses)
+          </h2>
+          <ul className="space-y-3 md:space-y-4">
+            {upcomingServices2Months.length === 0 ? (
+              <p className="text-gray-500 text-sm py-4">No hay servicios próximos en los siguientes 2 meses.</p>
+            ) : (
+              upcomingServices2Months.map((service, index) => (
+                <motion.li
+                  key={index}
+                  className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200 text-sm md:text-base hover:bg-green-100 transition-colors"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.3, delay: 0.8 + index * 0.05 }}
+                >
+                  <span className="text-green-800 font-medium">{service.text}</span>
+                  <span className="text-xs sm:text-sm text-green-600 mt-1 sm:mt-0">{service.date}</span>
+                </motion.li>
+              ))
+            )}
+          </ul>
+        </motion.div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mt-6">
+        {/* New section for Top 5 Latest Services */}
+        <motion.div
+          className="bg-white rounded-2xl p-5 md:p-6 shadow-lg border border-gray-200"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, delay: 0.9 }}
         >
           <h2 className="text-xl font-semibold text-gray-800 mb-4 border-b pb-3 border-gray-200 flex items-center gap-2">
             <Clock className="w-6 h-6 text-blue-600" /> Top 5 Últimos Servicios Realizados
@@ -265,9 +342,9 @@ const Dashboard = ({ showNotification, userRole }) => {
                 <motion.li
                   key={index}
                   className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100 text-sm md:text-base hover:bg-gray-100 transition-colors"
-                  initial={{ opacity: 0, x: -20 }}
+                  initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.3, delay: 0.8 + index * 0.05 }}
+                  transition={{ duration: 0.3, delay: 1.0 + index * 0.05 }}
                 >
                   <span className="text-gray-700">{service.text}</span>
                   <span className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-0">{service.date}</span>
@@ -276,32 +353,124 @@ const Dashboard = ({ showNotification, userRole }) => {
             )}
           </ul>
         </motion.div>
+
+        {/* New section for Most Recent Equipment Added to System */}
+        <motion.div
+          className="bg-white rounded-2xl p-5 md:p-6 shadow-lg border border-gray-200"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, delay: 1.1 }}
+        >
+          <h2 className="text-xl font-semibold text-gray-800 mb-4 border-b pb-3 border-gray-200 flex items-center gap-2">
+            <History className="w-6 h-6 text-purple-600" /> Equipos Más Recientes en Sistema
+          </h2>
+          <ul className="space-y-3 md:space-y-4">
+            {recentEquipment.length === 0 ? (
+              <p className="text-gray-500 text-sm py-4">No hay equipos con fecha de compra registrada.</p>
+            ) : (
+              recentEquipment.map((eq, index) => (
+                <motion.li
+                  key={index}
+                  className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100 text-sm md:text-base hover:bg-gray-100 transition-colors"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.3, delay: 1.2 + index * 0.05 }}
+                >
+                  <span className="text-gray-700">{eq.text}</span>
+                  <span className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-0">Factura: {eq.date}</span>
+                </motion.li>
+              ))
+            )}
+          </ul>
+        </motion.div>
       </div>
 
-      {/* New section for Oldest Equipment */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mt-6">
+        {/* New section for Overdue Equipment */}
+        <motion.div
+          className="bg-white rounded-2xl p-5 md:p-6 shadow-lg border border-gray-200"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, delay: 1.3 }}
+        >
+          <h2 className="text-xl font-semibold text-gray-800 mb-4 border-b pb-3 border-gray-200 flex items-center gap-2">
+            <AlertTriangle className="w-6 h-6 text-red-600" /> Equipos con Servicios Retrasados
+          </h2>
+          <ul className="space-y-3 md:space-y-4">
+            {overdueEquipment.length === 0 ? (
+              <p className="text-gray-500 text-sm py-4">¡Excelente! No hay equipos con servicios retrasados.</p>
+            ) : (
+              overdueEquipment.map((eq, index) => (
+                <motion.li
+                  key={index}
+                  className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 bg-red-50 rounded-lg border border-red-200 text-sm md:text-base hover:bg-red-100 transition-colors"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.3, delay: 1.4 + index * 0.05 }}
+                >
+                  <span className="text-red-800 font-medium">{eq.text}</span>
+                  <span className="text-xs sm:text-sm text-red-600 mt-1 sm:mt-0">Próximo servicio: {eq.date}</span>
+                </motion.li>
+              ))
+            )}
+          </ul>
+        </motion.div>
+
+        {/* New section for Services by Type */}
+        <motion.div
+          className="bg-white rounded-2xl p-5 md:p-6 shadow-lg border border-gray-200"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, delay: 1.5 }}
+        >
+          <h2 className="text-xl font-semibold text-gray-800 mb-4 border-b pb-3 border-gray-200 flex items-center gap-2">
+            <PieChart className="w-6 h-6 text-blue-600" /> Servicios por Tipo
+          </h2>
+          <ul className="space-y-3 md:space-y-4">
+            {servicesByType.length === 0 ? (
+              <p className="text-gray-500 text-sm py-4">No hay datos de servicios por tipo.</p>
+            ) : (
+              servicesByType.map((item, index) => (
+                <motion.li
+                  key={index}
+                  className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100 text-sm md:text-base hover:bg-gray-100 transition-colors"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.3, delay: 1.6 + index * 0.05 }}
+                >
+                  <span className="text-gray-700 font-medium">{item.type}</span>
+                  <span className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-0">Total: {item.count}</span>
+                </motion.li>
+              ))
+            )}
+          </ul>
+        </motion.div>
+      </div>
+
+      {/* New section for Clients by Zone */}
       <motion.div
         className="bg-white rounded-2xl p-5 md:p-6 shadow-lg border border-gray-200 mt-6"
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5, delay: 0.9 }}
+        transition={{ duration: 0.5, delay: 1.7 }}
       >
         <h2 className="text-xl font-semibold text-gray-800 mb-4 border-b pb-3 border-gray-200 flex items-center gap-2">
-          <History className="w-6 h-6 text-purple-600" /> Equipos con Más Tiempo en Campo
+          <MapPin className="w-6 h-6 text-orange-600" /> Clientes por Zona
         </h2>
         <ul className="space-y-3 md:space-y-4">
-          {oldestEquipment.length === 0 ? (
-            <p className="text-gray-500 text-sm py-4">No hay equipos con fecha de compra registrada.</p>
+          {clientsByZone.length === 0 ? (
+            <p className="text-gray-500 text-sm py-4">No hay datos de clientes por zona.</p>
           ) : (
-            oldestEquipment.map((eq, index) => (
+            clientsByZone.map((item, index) => (
               <motion.li
                 key={index}
                 className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100 text-sm md:text-base hover:bg-gray-100 transition-colors"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.3, delay: 1.0 + index * 0.05 }}
+                transition={{ duration: 0.3, delay: 1.8 + index * 0.05 }}
               >
-                <span className="text-gray-700">{eq.text}</span>
-                <span className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-0">Factura: {eq.date}</span>
+                <span className="text-gray-700 font-medium">{item.zone}</span>
+                <span className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-0">Clientes: {item.count}</span>
               </motion.li>
             ))
           )}

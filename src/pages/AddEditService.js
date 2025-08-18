@@ -105,7 +105,7 @@ const AddEditService = ({ showNotification, currentUser }) => {
   const mockUsers = [
     { username: 'carlos', role: 'tecnico', fullName: 'Carlos Hernandez Valencia' },
     { username: 'jonathan', role: 'administrador', fullName: 'Jonathan Valencia Quintal' },
-    { username: 'admin', role: 'administrador', fullName: 'Administrador Kaawa' },
+    { username: 'miguel', role: 'administrador', fullName: 'Jose Miguel Fernandez Perez' },
   ];
 
   // Function to generate a random 6-digit folio
@@ -549,7 +549,7 @@ const AddEditService = ({ showNotification, currentUser }) => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              {isEditing ? 'Guardar Cambios' : 'Programar Servicio'}
+              {isEditing ? 'Guardar Cambios' : 'Guardar Servicio'}
             </motion.button>
           </div>
         </form>

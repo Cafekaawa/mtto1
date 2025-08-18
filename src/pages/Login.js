@@ -23,7 +23,7 @@ const Login = ({ onLogin }) => {
     if (user && user.password === password) {
       onLogin(user);
     } else {
-      setError('Usuario o contraseña incorrectos. ¿Olvidaste tu café?');
+      setError('Usuario o contraseña incorrectos. ¿Olvidaste tu cafeina?');
     }
   };
 
@@ -45,9 +45,9 @@ const Login = ({ onLogin }) => {
             <LogIn className="w-10 h-10 text-white" />
           </motion.div>
           <h1 className="text-4xl font-extrabold text-gray-800 bg-gradient-to-r from-amber-600 to-orange-700 bg-clip-text text-transparent">
-            Sistema de Mantenimiento de Café Kaawa
+            Sistema de Acceso a Café Kaawa
           </h1>
-          <p className="text-gray-500 mt-2">Inicia sesión para continuar tu jornada cafetera</p>
+          <p className="text-gray-500 mt-2">Inicia sesión para continuar tus mantenimientos pendientes</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -59,7 +59,7 @@ const Login = ({ onLogin }) => {
                 type="text"
                 id="username"
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-amber-500 focus:border-amber-500 transition-all text-gray-800 placeholder-gray-400"
-                placeholder="Tu nombre de usuario"
+                placeholder="Ingresa Tu Usuario Asignado"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
@@ -74,7 +74,7 @@ const Login = ({ onLogin }) => {
                 type="password"
                 id="password"
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-amber-500 focus:border-amber-500 transition-all text-gray-800 placeholder-gray-400"
-                placeholder="Tu contraseña secreta"
+                placeholder="Ingresa Tu Contraseña Asignada"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -105,7 +105,7 @@ const Login = ({ onLogin }) => {
         </form>
 
         <p className="text-center text-gray-500 text-sm mt-6">
-          ¿Problemas para iniciar sesión? Contacta a tu administrador al E-mail sistemas@cafekaawa.mx.
+          ¿Problemas para iniciar sesión? Contacta a tu administrador o al E-mail sistemas@cafekaawa.mx
         </p>
       </motion.div>
     </div>
